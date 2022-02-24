@@ -1,9 +1,5 @@
 #pragma once
-#include <iostream>
-#include <vector>
-#include <time.h>
-using std::cout;
-using std::endl;
+#include "Common.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -22,7 +18,8 @@ inline static void* SystemAlloc(size_t bytes)
 	if (ptr == nullptr)
 		throw std::bad_alloc();
 	return ptr;
-}
+}
+
 
 template <class T>
 class ObjectPool
@@ -128,4 +125,4 @@ void TestObjectPool()
 	size_t end2 = clock();
 	cout << "new cost time:" << end1 - begin1 << endl;
 	cout << "object pool cost time:" << end2 - begin2 << endl;
-}
+}
