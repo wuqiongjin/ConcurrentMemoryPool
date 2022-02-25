@@ -1,10 +1,43 @@
 #include "CentralCache.h"
+#include "PageCache.h"
+
+//static成员需要在类外定义和初始化
+CentralCache CentralCache::_sInst;
 
 //获取一个非空的Span
-Span* CentralCache::GetOneSpan(SpanList& list, size_t size)
+Span* CentralCache::GetOneSpan(SpanList& slist, size_t size)
 {
-	//...
-	return nullptr;
+	//遍历整个Span找非空的span
+	Span* it = slist.Begin();
+	while (it != slist.End())
+	{
+		if (it->_freelist != nullptr)
+		{
+			return it;	//找到了非空的span，直接返回
+		}
+		it = it->_next;
+	}
+
+	//没找到非空的span, 向PageCache索要
+	Span* newSpan = PageCache::GetInstance()->NewSpan(SizeClass::SizeToPage(size));
+
+	//将newSpan切分成小块内存, 并将这些小块内存放到newSpan的成员_freelist下，使用Next(obj)函数进行连接
+	//先计算出大块内存的起始地址(页号*每页的大小)和终止地址(页数*每页的大小+起始地址)
+	char* start = (char*)(newSpan->_pageID << PAGE_SHIFT);
+	char* end = start + (newSpan->_n << PAGE_SHIFT);
+	
+	//_freelist下最好搞一个头结点，方便头插
+	newSpan->_freelist = start;
+
+	//开始切分
+	while (start < end)
+	{
+		Next(start) = start + size;//每块小内存填写下一块小内存的地址以达成逻辑上连接的效果
+		start += size;
+	}
+
+	slist.PushFront(newSpan);	//将新的newSpan插入到slist中
+	return newSpan;
 }
 
 //从CentralCache获取一定数量(batchNum)的对象给ThreadCache。输出型参数:start、end
@@ -15,6 +48,8 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 	_spanlists[index].Lock();	//进到index这个桶了，要先加锁
 
 	Span* span = GetOneSpan(_spanlists[index], size);
+	assert(span && span->_freelist);
+
 	start = span->_freelist;
 	end = start;
 	size_t actualNum = 1;

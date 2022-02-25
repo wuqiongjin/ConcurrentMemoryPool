@@ -5,7 +5,6 @@
 #include <thread>
 #include <mutex>
 
-
 #include <time.h>
 #include <assert.h>
 
@@ -14,6 +13,9 @@ using std::endl;
 
 static const size_t MAX_BYTES = 256 * 1024;	//小于等于MAX_BYTES就找ThreadCache
 static const size_t NFREELISTS = 208;	//一个ThreadCache中自由链表的个数
+static const size_t NPAGES = 129;		//设PageCache中的页数范围从1~128. 0下标处不挂东西
+static const size_t PAGE_SHIFT = 13;	//一页的大小设置为2^13 = 8KB
+
 
 #ifdef _WIN64	//64位下_WIN64和_WIN32都有，32位下只有_WIN32
 	typedef unsigned long long PAGE_ID;
@@ -170,10 +172,9 @@ public:
 	}
 
 	// 一次ThreadCache应该向CentralCache申请的对象的个数(根据对象的大小计算)
-	static size_t SizeToNum(size_t size)
+	static size_t SizeToMaxBatchNum(size_t size)
 	{
 		assert(size > 0);
-
 		// [2, 512],一次批量移动多少个对象的(慢启动)上限值
 		// 小对象一次批量上限高
 		// 小对象一次批量上限低
@@ -184,20 +185,33 @@ public:
 			num = 512;
 		return num;
 	}
+
+	//PageCache在向堆申请新的Span时，需要给定Span的页数(有了页数才能向SystemAlloc函数传参)
+	//SizeToPage函数是根据申请的小块内存的字节数来计算 申请几页的Span比较合适 
+	//函数功能概括:根据对象的大小计算应该要的Span是几页的
+	static size_t SizeToPage(size_t size)
+	{
+		size_t batchNum = SizeToMaxBatchNum(size);
+		size_t npage = batchNum * size;
+		npage >>= PAGE_SHIFT;
+
+		if (npage == 0)
+			npage = 1;
+		return npage;	}
 };
 
 
 //一个Span是用来管理多个连续页的大块内存的
 struct Span	//这个结构就类似于ListNode，因为它是构成SpanList的单个结点
 {
-	PAGE_ID _pageID;//大块内存起始页的页号(将一个进程的地址空间以页为单位划分，32下页的数量是2^32/2^13;64位下页的数量是2^64/2^13;假设一页是8K)
-	size_t _n;		//页的数量
-	size_t _useCount;//将切好的小块内存分给threadcache，useCount记录分出去了多少个小块内存
+	PAGE_ID _pageID = 0;//大块内存起始页的页号(将一个进程的地址空间以页为单位划分，32下页的数量是2^32/2^13;64位下页的数量是2^64/2^13;假设一页是8K)
+	size_t _n = 0;		//页的数量
+	size_t _useCount = 0;//将切好的小块内存分给threadcache，useCount记录分出去了多少个小块内存
 
 	Span* _next = nullptr;
 	Span* _prev = nullptr;
 
-	void* _freelist;//大块内存切成小块并连接起来，这样当threadcache要的时候直接给它小块的，回收的时候也方便管理
+	void* _freelist = nullptr;//大块内存切成小块并连接起来，这样当threadcache要的时候直接给它小块的，回收的时候也方便管理
 };
 
 //带头的双向循环链表(将每个桶的位置处的多个Span连接起来)
@@ -211,7 +225,6 @@ public:
 		_head->_prev = _head;
 	}
 
-
 	void Insert(Span* pos, Span* newSpan)
 	{
 		assert(pos && newSpan);
@@ -223,6 +236,11 @@ public:
 		prev->_next = newSpan;
 	}
 
+	void PushFront(Span* span)
+	{
+		Insert(Begin(), span);
+	}
+
 	void Erase(Span* pos)
 	{
 		assert(pos);
@@ -231,6 +249,18 @@ public:
 
 		prev->_next = next;
 		next->_prev = prev;
+	}
+
+	//为什么只提供Begin()和End()?
+	//因为我们只需要获取到Begin()和End()，然后定义一个Span* 指针就可以完成SpanList的遍历了(不需要搞什么迭代器)
+	Span* Begin()
+	{
+		return _head->_next;
+	}
+
+	Span* End()
+	{
+		return _head;
 	}
 
 	void Lock() { _mtx.lock(); }

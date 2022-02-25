@@ -20,8 +20,7 @@ private:
 	CentralCache(const CentralCache&) = delete;
 	CentralCache& operator=(const CentralCache&) = delete;
 	
-	static CentralCache _sInst;	//声明
+	static CentralCache _sInst;	//声明(定义在.cpp里面)
 private:
 	SpanList _spanlists[NFREELISTS];	//哈希桶结构
 };
-CentralCache CentralCache::_sInst;	//static成员需要在类外定义和初始化
