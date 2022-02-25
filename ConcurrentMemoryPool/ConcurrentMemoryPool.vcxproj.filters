@@ -27,12 +27,18 @@
     <ClInclude Include="ConcurrentAllocate.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="CentralCache.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ThreadCache.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="UnitTest.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="CentralCache.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
