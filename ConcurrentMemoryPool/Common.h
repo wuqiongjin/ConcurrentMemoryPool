@@ -25,6 +25,28 @@ static const size_t PAGE_SHIFT = 13;	//一页的大小设置为2^13 = 8KB
 	//linux
 #endif
 
+
+#ifdef _WIN32
+	#include <Windows.h>
+#elif
+	//Linux brk,mmp等
+#endif
+
+
+inline static void* SystemAlloc(size_t page)
+{
+#ifdef _WIN32
+	//VirtualAlloc的第二个参数是字节数, 因此要把页数转化为字节数
+	void* ptr = VirtualAlloc(0, (page << PAGE_SHIFT), MEM_COMMIT | MEM_RESERVE,	//直接向系统申请空间
+		PAGE_READWRITE);
+#else
+	// linux下brk mmap等
+#endif
+	if (ptr == nullptr)
+		throw std::bad_alloc();
+	return ptr;
+}
+
 //返回obj对象当中'用于存储下一个对象的地址'的引用
 static inline void*& Next(void* obj)	//static要加上(其实有inline就没问题了)，不然会在多个.cpp里面重定义
 {
@@ -241,6 +263,14 @@ public:
 		Insert(Begin(), span);
 	}
 
+	Span* PopFront()
+	{
+		assert(_head);
+		Span* span = _head->_next;
+		Erase(span);
+		return span;
+	}
+
 	void Erase(Span* pos)
 	{
 		assert(pos);
@@ -261,6 +291,12 @@ public:
 	Span* End()
 	{
 		return _head;
+	}
+
+	bool Empty()
+	{
+		//双线循环链表
+		return _head->_next == _head;
 	}
 
 	void Lock() { _mtx.lock(); }

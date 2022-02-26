@@ -18,8 +18,10 @@ Span* CentralCache::GetOneSpan(SpanList& slist, size_t size)
 		it = it->_next;
 	}
 
+	//在向PageCache索要之前，可以先解锁，让其它线程能够进入当前的桶中(可能有线程把内存释放回来)
+	slist.UnLock();
 	//没找到非空的span, 向PageCache索要
-	Span* newSpan = PageCache::GetInstance()->NewSpan(SizeClass::SizeToPage(size));
+	Span* newSpan = PageCache::GetInstance()->NewSpan(SizeClass::SizeToPage(size));	//newSpan是局部变量，其它线程看不到，所以对newSpan的操作不需要加锁
 
 	//将newSpan切分成小块内存, 并将这些小块内存放到newSpan的成员_freelist下，使用Next(obj)函数进行连接
 	//先计算出大块内存的起始地址(页号*每页的大小)和终止地址(页数*每页的大小+起始地址)
@@ -36,6 +38,8 @@ Span* CentralCache::GetOneSpan(SpanList& slist, size_t size)
 		start += size;
 	}
 
+	//PushFront的操作涉及到临界区，因此需要加锁，解锁的操作在FetchRangeObj中(因为进入GetOneSpan函数时是带着桶锁进来的!)
+	slist.Lock();
 	slist.PushFront(newSpan);	//将新的newSpan插入到slist中
 	return newSpan;
 }

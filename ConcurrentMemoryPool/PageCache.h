@@ -21,7 +21,7 @@ private:
 	PageCache& operator=(const PageCache&) = delete;
 
 	static PageCache _sInst;
-	std::mutex _pageMutex;	//一把大锁，一旦访问PageCache就要加锁
+	std::recursive_mutex _pageMutex;	//一把大锁，一旦访问PageCache就要加锁
 
 private:
 	SpanList _spanlists[NPAGES];	//以页数为映射的规则(直接定址法)
