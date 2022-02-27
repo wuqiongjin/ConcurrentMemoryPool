@@ -21,23 +21,27 @@ Span* CentralCache::GetOneSpan(SpanList& slist, size_t size)
 	//在向PageCache索要之前，可以先解锁，让其它线程能够进入当前的桶中(可能有线程把内存释放回来)
 	slist.UnLock();
 	//没找到非空的span, 向PageCache索要
+	PageCache::GetInstance()->PageLock();	//在这加锁也没问题, 如果再NewSpan函数里加锁, 就需要使用递归锁的特性了
 	Span* newSpan = PageCache::GetInstance()->NewSpan(SizeClass::SizeToPage(size));	//newSpan是局部变量，其它线程看不到，所以对newSpan的操作不需要加锁
+	newSpan->_isUsed = true;	//newSpan是即将分配给CentralCache使用的Span
+	PageCache::GetInstance()->PageUnLock();
 
 	//将newSpan切分成小块内存, 并将这些小块内存放到newSpan的成员_freelist下，使用Next(obj)函数进行连接
 	//先计算出大块内存的起始地址(页号*每页的大小)和终止地址(页数*每页的大小+起始地址)
 	char* start = (char*)(newSpan->_pageID << PAGE_SHIFT);
 	char* end = start + (newSpan->_n << PAGE_SHIFT);
-	
-	//_freelist下最好搞一个头结点，方便头插
-	newSpan->_freelist = start;
 
+	//_freelist下最好搞一个头结点，方便头插
+	newSpan->_freelist = (void*)start;
+	
 	//开始切分
 	while (start < end)
 	{
-		Next(start) = start + size;//每块小内存填写下一块小内存的地址以达成逻辑上连接的效果
-		start += size;
+		Next(start) = (void*)(start + size);//每块小内存填写下一块小内存的地址以达成逻辑上连接的效果
+		//start = (char*)Next(start);
+		start += size;	//等价于上面的
 	}
-
+	cout << std::this_thread::get_id() << ":" << " start:" << (void*)start << endl;
 	//PushFront的操作涉及到临界区，因此需要加锁，解锁的操作在FetchRangeObj中(因为进入GetOneSpan函数时是带着桶锁进来的!)
 	slist.Lock();
 	slist.PushFront(newSpan);	//将新的newSpan插入到slist中
@@ -65,6 +69,47 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 	span->_freelist = Next(end);
 	Next(end) = nullptr;	//获取完start和end这段范围的空间了，得让end与之后的空间断开连接
 
+	span->_useCount += actualNum;
+
 	_spanlists[index].UnLock();
 	return actualNum;
+}
+
+//将从start起始的freelist中的所有小块内存都归还(头插)给spanlists[index]中的各自的span
+void CentralCache::ReleaseListToSpans(void* start, size_t size)
+{
+	assert(start);
+	size_t index = SizeClass::Index(size);
+	_spanlists[index].Lock();
+
+	while (start)
+	{
+		void* NextPos = Next(start);
+		PAGE_ID id = ((PAGE_ID)start >> PAGE_SHIFT);//在某一页当中的所有地址除以页的大小，它们得到的结果都是当前页的页号
+		Span* ret = PageCache::GetInstance()->MapPAGEIDToSpan(id);//映射关系在PageCache将Span分给CentralCache时进行存储
+		//将start小块内存头插到Span* ret的_freelist当中
+		if(ret != nullptr)
+		{
+			Next(start) = ret->_freelist;
+			ret->_freelist = start;
+		}
+		else
+		{
+			assert(false);	//不应该是nullptr
+		}
+
+		//将useCount减为0的Span返回给PageCache，以用来合并成更大的Span
+		--ret->_useCount;
+		if (ret->_useCount == 0)
+		{
+			_spanlists[index].UnLock();
+			PageCache::GetInstance()->PageLock();
+			PageCache::GetInstance()->ReleaseSpanToPageCache(ret);
+			PageCache::GetInstance()->PageUnLock();
+			_spanlists[index].Lock();
+		}
+
+		start = NextPos;
+	}
+	_spanlists[index].UnLock();
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 #include <algorithm>
 #include <thread>
 #include <mutex>
@@ -63,14 +64,16 @@ public:
 		assert(obj);
 		Next(obj) = _head;
 		_head = obj;
+		++_size;
 	}
 
-	void PushRange(void* start, void* end)
+	void PushRange(void* start, void* end, size_t n)
 	{
 		//也是头插: 先让end的下一个指向head指向的位置，然后再把head移动到start的位置(画个图)
 		assert(start && end);
 		Next(end) = _head;
 		_head = start;
+		_size += n;
 	}
 
 	void* Pop()
@@ -79,7 +82,23 @@ public:
 		assert(_head);
 		void* obj = _head;
 		_head = Next(obj);
+		--_size;
 		return obj;
+	}
+
+	//这里的n其实就是_maxsize
+	void PopRange(void*& start, void*& end, size_t n)
+	{
+		//assert(size > 0 && size <= this->Size());
+		start = _head;
+		end = _head;
+		while (--n)
+		{
+			end = Next(end);
+		}
+		_head = Next(end);
+		Next(end) = nullptr;	//断开连接
+		_size = 0;	//清空当前桶(不代表这个桶为空，因为这个桶还可能会有正在借出去给线程使用的小块内存)
 	}
 
 	bool Empty()
@@ -91,9 +110,15 @@ public:
 	{
 		return _maxsize;
 	}
+
+	size_t Size()
+	{
+		return _size;
+	}
 private:
 	void* _head = nullptr;
 	size_t _maxsize = 1;
+	size_t _size = 0;	//自由链表下面挂了几个小块内存
 };
 
 
@@ -219,7 +244,8 @@ public:
 
 		if (npage == 0)
 			npage = 1;
-		return npage;	}
+		return npage;
+	}
 };
 
 
@@ -229,6 +255,8 @@ struct Span	//这个结构就类似于ListNode，因为它是构成SpanList的单个结点
 	PAGE_ID _pageID = 0;//大块内存起始页的页号(将一个进程的地址空间以页为单位划分，32下页的数量是2^32/2^13;64位下页的数量是2^64/2^13;假设一页是8K)
 	size_t _n = 0;		//页的数量
 	size_t _useCount = 0;//将切好的小块内存分给threadcache，useCount记录分出去了多少个小块内存
+
+	bool _isUsed = false;
 
 	Span* _next = nullptr;
 	Span* _prev = nullptr;

@@ -13,6 +13,12 @@ public:
 	//向堆申请一个"页数"大小为"NPAGES - 1"的新的Span
 	Span* NewSpan(size_t page);
 
+	//将PAGE_ID映射到一个Span*上, 这样可以通过页号直接找到对应的Span*的位置
+	Span* MapPAGEIDToSpan(PAGE_ID id);
+
+	//将useCount减为0的Span返回给PageCache，以用来合并成更大的Span
+	void ReleaseSpanToPageCache(Span* span);
+
 	void PageLock() { _pageMutex.lock(); }
 	void PageUnLock() { _pageMutex.unlock(); }
 private:
@@ -25,4 +31,5 @@ private:
 
 private:
 	SpanList _spanlists[NPAGES];	//以页数为映射的规则(直接定址法)
+	std::unordered_map<PAGE_ID, Span*> _idSpanMap;
 };

@@ -11,12 +11,12 @@
 	{
 		pTLSThreadCache = new ThreadCache;
 	}
-	cout << std::this_thread::get_id() << ":" << pTLSThreadCache << endl;
+	//cout << std::this_thread::get_id() << ":" << pTLSThreadCache << endl;
 	return pTLSThreadCache->Allocate(size);
 }
 
 //·â×°Ò»²ã
- void ConcurrentDeallocate(void* ptr, size_t size)
+ void ConcurrentFree(void* ptr, size_t size)
 {
 	assert(pTLSThreadCache);
 	pTLSThreadCache->Deallocate(ptr, size);

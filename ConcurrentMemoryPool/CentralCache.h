@@ -15,6 +15,9 @@ public:
 
 	//从CentralCache获取一定数量的对象给ThreadCache
 	size_t FetchRangeObj(void*& start, void*&end, size_t batchNum, size_t size);
+
+	//将从start起始的freelist中的所有小块内存都归还给spanlists[index]中的各自的span
+	void ReleaseListToSpans(void* start, size_t size);
 private:
 	CentralCache(){}
 	CentralCache(const CentralCache&) = delete;

@@ -8,6 +8,9 @@ public:
 	void* Allocate(size_t size);
 	void Deallocate(void* ptr, size_t size);
 
+	void ListTooLong(FreeList& freelist, size_t size);
+
+	//从CentralCache获取alignNum对象大小的小块内存
 	void* FetchFromCentralCache(size_t Index, size_t alignNum);
 
 private:
