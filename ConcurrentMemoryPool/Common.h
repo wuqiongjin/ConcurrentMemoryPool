@@ -48,6 +48,16 @@ inline static void* SystemAlloc(size_t page)
 	return ptr;
 }
 
+inline static void SystemFree(void* ptr)
+{
+#ifdef _WIN32
+	VirtualFree(ptr, 0, MEM_RELEASE);
+#else
+	// sbrk unmmap等
+#endif
+}
+
+
 //返回obj对象当中'用于存储下一个对象的地址'的引用
 static inline void*& Next(void* obj)	//static要加上(其实有inline就没问题了)，不然会在多个.cpp里面重定义
 {
@@ -171,10 +181,10 @@ public:
 		{
 			return _RoundUp(bytes, 8 * 1024);
 		}
-		else
+		else// > 256KB
 		{
-			assert(false);
-			return -1;
+			//256KB就是32页，>256KB就直接按照"页单位"进行向上对齐
+			return _RoundUp(bytes, 1 << PAGE_SHIFT);//1^13 = 8192
 		}
 	}
 
@@ -257,6 +267,8 @@ struct Span	//这个结构就类似于ListNode，因为它是构成SpanList的单个结点
 	size_t _useCount = 0;//将切好的小块内存分给threadcache，useCount记录分出去了多少个小块内存
 
 	bool _isUsed = false;
+
+	size_t _ObjectSize = 0;	//存储当前的Span所进行服务的对象的大小
 
 	Span* _next = nullptr;
 	Span* _prev = nullptr;

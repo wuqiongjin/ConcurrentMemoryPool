@@ -23,8 +23,10 @@ Span* CentralCache::GetOneSpan(SpanList& slist, size_t size)
 	//没找到非空的span, 向PageCache索要
 	PageCache::GetInstance()->PageLock();	//在这加锁也没问题, 如果再NewSpan函数里加锁, 就需要使用递归锁的特性了
 	Span* newSpan = PageCache::GetInstance()->NewSpan(SizeClass::SizeToPage(size));	//newSpan是局部变量，其它线程看不到，所以对newSpan的操作不需要加锁
-	newSpan->_isUsed = true;	//newSpan是即将分配给CentralCache使用的Span
+	//newSpan->_isUsed = true;	//newSpan是即将分配给CentralCache使用的Span	//修改: 考虑到调用NewSpan的函数不止这一个, isUsed状态最好在NewSpan里面设置
 	PageCache::GetInstance()->PageUnLock();
+
+	newSpan->_ObjectSize = size;
 
 	//将newSpan切分成小块内存, 并将这些小块内存放到newSpan的成员_freelist下，使用Next(obj)函数进行连接
 	//先计算出大块内存的起始地址(页号*每页的大小)和终止地址(页数*每页的大小+起始地址)
@@ -86,7 +88,9 @@ void CentralCache::ReleaseListToSpans(void* start, size_t size)
 	{
 		void* NextPos = Next(start);
 		PAGE_ID id = ((PAGE_ID)start >> PAGE_SHIFT);//在某一页当中的所有地址除以页的大小，它们得到的结果都是当前页的页号
+		PageCache::GetInstance()->PageLock();
 		Span* ret = PageCache::GetInstance()->MapPAGEIDToSpan(id);//映射关系在PageCache将Span分给CentralCache时进行存储
+		PageCache::GetInstance()->PageUnLock();
 		//将start小块内存头插到Span* ret的_freelist当中
 		if(ret != nullptr)
 		{

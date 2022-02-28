@@ -1,5 +1,6 @@
 #pragma once
 #include "Common.h"
+#include "ObjectPool.h"
 
 //单例模式PageCache
 class PageCache
@@ -32,4 +33,5 @@ private:
 private:
 	SpanList _spanlists[NPAGES];	//以页数为映射的规则(直接定址法)
 	std::unordered_map<PAGE_ID, Span*> _idSpanMap;
+	ObjectPool<Span> _spanPool;
 };

@@ -38,14 +38,14 @@ void testConcurrentAlloc()
 	void* ptr7 = ConcurrentAllocate(8);
 	void* ptr8 = ConcurrentAllocate(5);
 
-	ConcurrentFree(ptr1, 6);
-	ConcurrentFree(ptr2, 7);
-	ConcurrentFree(ptr3, 8);
-	ConcurrentFree(ptr4, 5);
-	ConcurrentFree(ptr5, 3);
-	ConcurrentFree(ptr6, 7);
-	ConcurrentFree(ptr7, 8);
-	ConcurrentFree(ptr8, 5);
+	ConcurrentFree(ptr1);
+	ConcurrentFree(ptr2);
+	ConcurrentFree(ptr3);
+	ConcurrentFree(ptr4);
+	ConcurrentFree(ptr5);
+	ConcurrentFree(ptr6);
+	ConcurrentFree(ptr7);
+	ConcurrentFree(ptr8);
 }
 
 
@@ -60,7 +60,7 @@ void MultiAlloc1()
 
 	for (int i = 0; i < 10; ++i)
 	{
-		ConcurrentFree(v[i], 6);
+		ConcurrentFree(v[i]);
 	}
 }
 
@@ -75,7 +75,7 @@ void MultiAlloc2()
 
 	for (int i = 0; i < 10; ++i)
 	{
-		ConcurrentFree(v[i], 7);
+		ConcurrentFree(v[i]);
 	}
 }
 
@@ -90,7 +90,7 @@ void MultiAlloc3()
 
 	for (int i = 0; i < 10; ++i)
 	{
-		ConcurrentFree(v[i], 7);
+		ConcurrentFree(v[i]);
 	}
 }
 
@@ -105,12 +105,30 @@ void TestMultiThread()
 	t3.join();
 }
 
+
+void TestBigAlloc()
+{
+	void* ptr1 = ConcurrentAllocate(257 * 1024);
+	void* ptr2 = ConcurrentAllocate(129 << PAGE_SHIFT);
+
+	ConcurrentFree(ptr1);
+	ConcurrentFree(ptr2);
+
+	//ConcurrentFree(ptr1, 257 * 1024);
+	//ConcurrentFree(ptr2, 129 << PAGE_SHIFT);
+}
+
+
 int main()
 {
 	//TestObjectPool();
 	//testTLS();
 	//testConcurrentAlloc();
 
+	
 	TestMultiThread();
+	//TestBigAlloc();
+
+
 	return 0;
 }
