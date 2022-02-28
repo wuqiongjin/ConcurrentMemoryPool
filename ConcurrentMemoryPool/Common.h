@@ -302,6 +302,7 @@ public:
 	void Erase(Span* pos)
 	{
 		assert(pos);
+		assert(pos != _head);
 		Span* prev = pos->_prev;
 		Span* next = pos->_next;
 

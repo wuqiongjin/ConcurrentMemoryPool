@@ -102,6 +102,12 @@ void CentralCache::ReleaseListToSpans(void* start, size_t size)
 		--ret->_useCount;
 		if (ret->_useCount == 0)
 		{
+			//错误3，修改3:--->忘记把useCount == 0的span从CentralCache扔掉了
+			_spanlists[index].Erase(ret);
+			ret->_freelist = nullptr;
+			ret->_prev = nullptr;
+			ret->_next = nullptr;
+
 			_spanlists[index].UnLock();
 			PageCache::GetInstance()->PageLock();
 			PageCache::GetInstance()->ReleaseSpanToPageCache(ret);
