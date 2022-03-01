@@ -67,13 +67,13 @@ void MultiAlloc1()
 void MultiAlloc2()
 {
 	std::vector<void*> v;
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 10000; ++i)
 	{
 		void* ptr = ConcurrentAllocate(7);
 		v.push_back(ptr);
 	}
 
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 10000; ++i)
 	{
 		ConcurrentFree(v[i]);
 	}
@@ -82,13 +82,13 @@ void MultiAlloc2()
 void MultiAlloc3()
 {
 	std::vector<void*> v;
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 10000; ++i)
 	{
 		void* ptr = ConcurrentAllocate(7);
 		v.push_back(ptr);
 	}
 
-	for (int i = 0; i < 10; ++i)
+	for (int i = 0; i < 10000; ++i)
 	{
 		ConcurrentFree(v[i]);
 	}
@@ -118,17 +118,17 @@ void TestBigAlloc()
 	//ConcurrentFree(ptr2, 129 << PAGE_SHIFT);
 }
 
-
-int main()
-{
-	//TestObjectPool();
-	//testTLS();
-	//testConcurrentAlloc();
-
-	
-	TestMultiThread();
-	//TestBigAlloc();
-
-
-	return 0;
-}
+//
+//int main()
+//{
+//	//TestObjectPool();
+//	//testTLS();
+//	//testConcurrentAlloc();
+//
+//	
+//	TestMultiThread();
+//	//TestBigAlloc();
+//
+//
+//	return 0;
+//}

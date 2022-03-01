@@ -33,16 +33,44 @@ Span* CentralCache::GetOneSpan(SpanList& slist, size_t size)
 	char* start = (char*)(newSpan->_pageID << PAGE_SHIFT);
 	char* end = start + (newSpan->_n << PAGE_SHIFT);
 
-	//_freelist下最好搞一个头结点，方便头插
+	//_freelist下最好搞一个头结点，方便尾插
 	newSpan->_freelist = (void*)start;
-	
+	void* ret = start;
+	start += size;
+	Next(ret) = start;
+
+	int j = 1;
 	//开始切分
 	while (start < end)
 	{
-		Next(start) = (void*)(start + size);//每块小内存填写下一块小内存的地址以达成逻辑上连接的效果
-		//start = (char*)Next(start);
-		start += size;	//等价于上面的
+		++j;
+		//Next(start) = (void*)(start + size);//每块小内存填写下一块小内存的地址以达成逻辑上连接的效果
+		////start = (char*)Next(start);
+		//start += size;	//等价于上面的
+		Next(ret) = start;
+		ret = Next(ret);
+		start += size;
 	}
+	//忘记在切分完对象后让最后一小块对象的Next设置为nullptr了
+	Next(ret) = nullptr;
+	
+	//条件断点 + 全部中断		-----调试-----
+	//void* cur = newSpan->_freelist;
+	//int i = 0;
+	//while (cur)
+	//{
+	//	++i;
+	//	cur = Next(cur);
+	//}
+	//if (i != ((newSpan->_n << PAGE_SHIFT) / size))
+	//{
+	//	cout << "error" << endl;
+	//}
+	//if (newSpan->_freelist != (void*)(newSpan->_pageID << PAGE_SHIFT))
+	//{
+	//	assert(false);
+	//}
+
 	cout << std::this_thread::get_id() << ":" << " start:" << (void*)start << endl;
 	//PushFront的操作涉及到临界区，因此需要加锁，解锁的操作在FetchRangeObj中(因为进入GetOneSpan函数时是带着桶锁进来的!)
 	slist.Lock();
@@ -71,6 +99,19 @@ size_t CentralCache::FetchRangeObj(void*& start, void*& end, size_t batchNum, si
 	span->_freelist = Next(end);
 	Next(end) = nullptr;	//获取完start和end这段范围的空间了，得让end与之后的空间断开连接
 
+	//void* cur = start;
+	//int i = 0;
+	//while (cur)
+	//{
+	//	cur = Next(cur);
+	//	++i;
+	//}
+	//if (i != actualNum)
+	//{
+	//	cout << "error!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+	//	system("pause");
+	//}
+
 	span->_useCount += actualNum;
 
 	_spanlists[index].UnLock();
@@ -83,6 +124,14 @@ void CentralCache::ReleaseListToSpans(void* start, size_t size)
 	assert(start);
 	size_t index = SizeClass::Index(size);
 	_spanlists[index].Lock();
+
+	//int i = 0;
+	//void* cur = start;
+	//while (cur)
+	//{
+	//	cur = Next(cur);
+	//	++i;
+	//}
 
 	while (start)
 	{
@@ -103,7 +152,18 @@ void CentralCache::ReleaseListToSpans(void* start, size_t size)
 		}
 
 		//将useCount减为0的Span返回给PageCache，以用来合并成更大的Span
-		--ret->_useCount;
+
+		//-----调试-----
+		//--ret->_useCount;
+		//if (ret->_useCount == 4294967295)
+		//{
+		//	int x = 0;
+		//	if (ret->_freelist == nullptr && ret->_prev == nullptr && ret->_next == nullptr)
+		//	{
+		//		int y = 0;
+		//	}
+		//}
+
 		if (ret->_useCount == 0)
 		{
 			//错误3，修改3:--->忘记把useCount == 0的span从CentralCache扔掉了

@@ -80,7 +80,32 @@ public:
 	void PushRange(void* start, void* end, size_t n)
 	{
 		//也是头插: 先让end的下一个指向head指向的位置，然后再把head移动到start的位置(画个图)
-		assert(start && end);
+		//assert(start && end);
+
+		//if (start == nullptr)
+		//{
+		//	cout << "start = nullptr" << endl;
+		//}
+
+		//if (end == nullptr)
+		//{
+		//	cout << "end = nullptr" << endl;
+		//}
+		
+
+		//条件断点
+		//int i = 0;
+		//void* cur = start;
+		//while (cur)
+		//{
+		//	cur = Next(cur);
+		//	++i;
+		//}
+		//if (i != n)
+		//{
+		//	cout << "error" << endl;
+		//}
+
 		Next(end) = _head;
 		_head = start;
 		_size += n;
@@ -100,8 +125,25 @@ public:
 	void PopRange(void*& start, void*& end, size_t n)
 	{
 		//assert(size > 0 && size <= this->Size());
+		assert(_maxsize <= _size);
 		start = _head;
 		end = _head;
+
+		//-----调试-----
+		//int i = 0;
+		//void* cur = end;
+		//while (cur)
+		//{
+		//	cur = Next(cur);
+		//	++i;
+		//}
+		//if (i != n)
+		//{
+		//	Print();
+		//	cout << "i != n" << endl;
+		//	system("puase");
+		//}
+
 		while (--n)
 		{
 			end = Next(end);
@@ -124,6 +166,18 @@ public:
 	size_t Size()
 	{
 		return _size;
+	}
+
+	void Print()
+	{
+		void* cur = _head;
+		int i = 0;
+		while (cur)
+		{
+			++i;
+			cur = Next(cur);
+		}
+		cout << i << endl;
 	}
 private:
 	void* _head = nullptr;

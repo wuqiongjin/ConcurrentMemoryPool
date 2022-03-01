@@ -7,7 +7,7 @@
 //因为每个线程都有自己的TLS，我们不可能让用户自己去调用TLS然后才能调到Allocate，而是应该直接给他们提供接口。让他们使用接口就行了
 
 //封装一层
- void* ConcurrentAllocate(size_t size)	//对于tcmalloc中，这里的的名称就是tcmalloc了
+ static void* ConcurrentAllocate(size_t size)	//对于tcmalloc中，这里的的名称就是tcmalloc了
 {
 	//当对象大小 > 256KB时 (大于NAPES - 1的情况放到NewSpan里面处理)
 	if (size > MAX_BYTES)
@@ -32,7 +32,7 @@
 }
 
 //封装一层
- void ConcurrentFree(void* ptr)
+ static void ConcurrentFree(void* ptr)
 {
 	 //Free时
 	 PAGE_ID pageID = ((PAGE_ID)ptr >> PAGE_SHIFT);

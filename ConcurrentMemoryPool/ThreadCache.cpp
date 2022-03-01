@@ -20,6 +20,19 @@ void* ThreadCache::FetchFromCentralCache(size_t index, size_t size)//sizeÊÇË÷Òªµ
 	void* end = nullptr;
 	size_t actualNum = CentralCache::GetInstance()->FetchRangeObj(start, end, batchNum, size);
 
+	////Ìõ¼þ¶Ïµã
+	//void* cur = start;
+	//int i = 0;
+	//while (cur)
+	//{
+	//	++i;
+	//	cur = Next(cur);
+	//}
+	//if (i != actualNum)
+	//{
+	//	cout << "error" << endl;
+	//}
+
 	if (actualNum == 1)
 	{
 		assert(start == end);
@@ -53,14 +66,15 @@ void ThreadCache::Deallocate(void* ptr, size_t size)
 {
 	assert(ptr);
 	assert(size <= MAX_BYTES);
-
-	int index = SizeClass::Index(size);	//¼ÆËã³öÓ¦¸Ã²åµ½ÄÄ¸ö×ÔÓÉÁ´±íÉÏ
+	
+	size_t index = SizeClass::Index(size);	//¼ÆËã³öÓ¦¸Ã²åµ½ÄÄ¸ö×ÔÓÉÁ´±íÉÏ
 	_freelists[index].Push(ptr);	//½«ptrÕâ¿é¿Õ¼äÍ·²åµ½¶ÔÓ¦µÄ×ÔÓÉÁ´±íÉÏ
 
 	//µ±×ÔÓÉÁ´±íÏÂÃæ¹Ò×ÅµÄÐ¡¿éÄÚ´æµÄÊýÁ¿ >= Ò»´ÎÅúÁ¿ÉêÇëµÄÐ¡¿éÄÚ´æµÄÊýÁ¿Ê±,
 	//ÎÒÃÇ½«Size()´óÐ¡µÄÐ¡¿éÄÚ´æÈ«²¿·µ»Ø¸øCentralCacheµÄSpanÉÏ
 	if (_freelists[index].Size() >= _freelists[index].MaxSize())
 	{
+		//_freelists[index].Print();
 		ListTooLong(_freelists[index], size);
 	}
 }

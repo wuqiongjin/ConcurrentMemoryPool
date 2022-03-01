@@ -31,6 +31,13 @@ Span* PageCache::NewSpan(size_t page)
 		Span* span = _spanlists[page].PopFront();
 		//this->PageUnLock();	//这里是在已知道只会递归1次的情况下才选择手动UnLock()的，不然推荐使用unique_lock
 		//this->PageUnLock();	//正常情况就是, 递归加锁几次，就要解锁几次
+
+		//修改: 别忘了要存入_idSpanMap
+		for (PAGE_ID i = span->_pageID; i < span->_pageID + span->_n; ++i)
+		{
+			_idSpanMap[i] = span;
+		}
+
 		return span;
 	}
 
@@ -62,7 +69,7 @@ Span* PageCache::NewSpan(size_t page)
 			//this->PageUnLock();
 
 			//保存返回给CentralCache时的SmallSpan的每一页与SmallSpan的映射关系, 这样方便SmallSpan切分成小块内存后，然后小块内存通过映射关系找回SmallSpan
-			for (size_t i = SmallSpan->_pageID; i < SmallSpan->_pageID + SmallSpan->_n; ++i)
+			for (PAGE_ID i = SmallSpan->_pageID; i < SmallSpan->_pageID + SmallSpan->_n; ++i)
 			{
 				_idSpanMap[i] = SmallSpan;
 			}
