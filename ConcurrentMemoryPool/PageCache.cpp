@@ -18,7 +18,8 @@ Span* PageCache::NewSpan(size_t page)
 		newSpan->_n = page;
 		newSpan->_ObjectSize = (page << PAGE_SHIFT);	//告知Span它分配对象的大小(这里给的是对齐数)
 
-		_idSpanMap[newSpan->_pageID] = newSpan;	//保存一下页号与Span*的对应关系
+		//_idSpanMap[newSpan->_pageID] = newSpan;	//保存一下页号与Span*的对应关系
+		_idSpanMap.set(newSpan->_pageID, newSpan);
 
 		return newSpan;
 	}
@@ -35,7 +36,8 @@ Span* PageCache::NewSpan(size_t page)
 		//修改: 别忘了要存入_idSpanMap
 		for (PAGE_ID i = span->_pageID; i < span->_pageID + span->_n; ++i)
 		{
-			_idSpanMap[i] = span;
+			//_idSpanMap[i] = span;
+			_idSpanMap.set(i, span);
 		}
 
 		return span;
@@ -61,8 +63,11 @@ Span* PageCache::NewSpan(size_t page)
 
 
 			//也要把BigSpan的首页和尾页存到映射表当中，这样在空闲的Span进行合并查找时能够通过映射表找到BigSpan随后进行合并
-			_idSpanMap[BigSpan->_pageID] = BigSpan;
-			_idSpanMap[BigSpan->_pageID + BigSpan->_n - 1] = BigSpan;	//别忘了-1,举个例子看看
+			//_idSpanMap[BigSpan->_pageID] = BigSpan;
+			//_idSpanMap[BigSpan->_pageID + BigSpan->_n - 1] = BigSpan;	//别忘了-1,举个例子看看
+			_idSpanMap.set(BigSpan->_pageID, BigSpan);
+			_idSpanMap.set(BigSpan->_pageID + BigSpan->_n - 1, BigSpan);
+
 
 			_spanlists[BigSpan->_n].PushFront(BigSpan);
 			//this->PageUnLock();
@@ -71,7 +76,8 @@ Span* PageCache::NewSpan(size_t page)
 			//保存返回给CentralCache时的SmallSpan的每一页与SmallSpan的映射关系, 这样方便SmallSpan切分成小块内存后，然后小块内存通过映射关系找回SmallSpan
 			for (PAGE_ID i = SmallSpan->_pageID; i < SmallSpan->_pageID + SmallSpan->_n; ++i)
 			{
-				_idSpanMap[i] = SmallSpan;
+				//_idSpanMap[i] = SmallSpan;
+				_idSpanMap.set(i, SmallSpan);
 			}
 
 			SmallSpan->_isUsed = true;	//细节!
@@ -101,12 +107,17 @@ Span* PageCache::NewSpan(size_t page)
 //将PAGE_ID映射到一个Span*上, 这样可以通过页号直接找到对应的Span*的位置
 Span* PageCache::MapPAGEIDToSpan(PAGE_ID id)
 {
-	auto it = _idSpanMap.find(id);
-	if (it != _idSpanMap.end())
-	{
-		return it->second;
-	}
-	return nullptr;	//没找到映射关系, 返回nullptr
+	//auto it = _idSpanMap.find(id);
+	//if (it != _idSpanMap.end())
+	//{
+	//	return it->second;
+	//}
+
+	//基数树优化
+	Span* ret = (Span*)_idSpanMap.get(id);
+	return ret;
+
+	//return nullptr;	//没找到映射关系, 返回nullptr
 }
 
 //将useCount减为0的Span返回给PageCache，以用来合并成更大的Span
@@ -164,6 +175,8 @@ void PageCache::ReleaseSpanToPageCache(Span* span)
 
 	span->_isUsed = false;
 	_spanlists[span->_n].PushFront(span);	//将合并后的Span插入到spanlist当中
-	_idSpanMap[span->_pageID] = span;
-	_idSpanMap[span->_pageID + span->_n - 1] = span;
+	//_idSpanMap[span->_pageID] = span;
+	//_idSpanMap[span->_pageID + span->_n - 1] = span;
+	_idSpanMap.set(span->_pageID, span);
+	_idSpanMap.set(span->_pageID + span->_n - 1, span);
 }

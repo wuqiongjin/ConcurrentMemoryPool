@@ -20,8 +20,8 @@ void BenchmarkMalloc(size_t ntimes, size_t nworks, size_t rounds)
 				size_t begin1 = clock();
 				for (size_t i = 0; i < ntimes; i++)
 				{
-					v.push_back(malloc(16));
-					//v.push_back(malloc((16 + i) % 8192 + 1));
+					//v.push_back(malloc(16));
+					v.push_back(malloc((16 + i) % 8192 + 1));
 				}
 				size_t end1 = clock();
 
@@ -52,7 +52,7 @@ void BenchmarkMalloc(size_t ntimes, size_t nworks, size_t rounds)
 	//printf("%u个线程并发执行%u轮次，每轮次free %u次: 花费：%u ms\n",
 	//	nworks, rounds, ntimes, free_costtime);
 
-	cout << nworks << "个线程并发执行" << rounds << "轮次" << ",每轮次free" << ntimes << "次: 花费：" << malloc_costtime << "ms" << endl;
+	cout << nworks << "个线程并发执行" << rounds << "轮次" << ",每轮次free" << ntimes << "次: 花费：" << free_costtime << "ms" << endl;
 
 	//printf("%u个线程并发malloc&free %u次，总计花费：%u ms\n",
 	//	nworks, nworks*rounds*ntimes, malloc_costtime + free_costtime);
@@ -81,8 +81,8 @@ void BenchmarkConcurrentMalloc(size_t ntimes, size_t nworks, size_t rounds)
 				size_t begin1 = clock();
 				for (size_t i = 0; i < ntimes; i++)
 				{
-					v.push_back(ConcurrentAllocate(16));
-					//v.push_back(ConcurrentAllocate((16 + i) % 8192 + 1));
+					//v.push_back(ConcurrentAllocate(16));
+					v.push_back(ConcurrentAllocate((16 + i) % 8192 + 1));
 				}
 				size_t end1 = clock();
 
@@ -122,7 +122,7 @@ void BenchmarkConcurrentMalloc(size_t ntimes, size_t nworks, size_t rounds)
 	//printf("%u个线程并发执行%u轮次，每轮次free %u次: 花费：%u ms\n",
 	//	nworks, rounds, ntimes, free_costtime);
 
-	cout << nworks << "个线程并发执行" << rounds << "轮次" << ",每轮次concurrent dealloc" << ntimes << "次: 花费：" << malloc_costtime << "ms" << endl;
+	cout << nworks << "个线程并发执行" << rounds << "轮次" << ",每轮次concurrent dealloc" << ntimes << "次: 花费：" << free_costtime << "ms" << endl;
 
 	//printf("%u个线程并发malloc&free %u次，总计花费：%u ms\n",
 	//	nworks, nworks*rounds*ntimes, malloc_costtime + free_costtime);
@@ -134,10 +134,10 @@ int main()
 {
 	size_t n = 1000;
 	cout << "==========================================================" << endl;
-	BenchmarkConcurrentMalloc(n, 4, 10);
+	BenchmarkConcurrentMalloc(n, 4, 100);
 	cout << endl << endl;
 
-	BenchmarkMalloc(n, 4, 10);
+	BenchmarkMalloc(n, 4, 100);
 	cout << "==========================================================" << endl;
 
 	return 0;

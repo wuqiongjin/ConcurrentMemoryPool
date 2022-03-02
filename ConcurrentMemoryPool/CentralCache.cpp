@@ -137,9 +137,9 @@ void CentralCache::ReleaseListToSpans(void* start, size_t size)
 	{
 		void* NextPos = Next(start);
 		PAGE_ID id = ((PAGE_ID)start >> PAGE_SHIFT);//在某一页当中的所有地址除以页的大小，它们得到的结果都是当前页的页号
-		PageCache::GetInstance()->PageLock();
+		//PageCache::GetInstance()->PageLock();	//基数树优化
 		Span* ret = PageCache::GetInstance()->MapPAGEIDToSpan(id);//映射关系在PageCache将Span分给CentralCache时进行存储
-		PageCache::GetInstance()->PageUnLock();
+		//PageCache::GetInstance()->PageUnLock();
 		//将start小块内存头插到Span* ret的_freelist当中
 		if(ret != nullptr)
 		{
