@@ -71,7 +71,7 @@ Span* CentralCache::GetOneSpan(SpanList& slist, size_t size)
 	//	assert(false);
 	//}
 
-	cout << std::this_thread::get_id() << ":" << " start:" << (void*)start << endl;
+	//cout << std::this_thread::get_id() << ":" << " start:" << (void*)start << endl;
 	//PushFront的操作涉及到临界区，因此需要加锁，解锁的操作在FetchRangeObj中(因为进入GetOneSpan函数时是带着桶锁进来的!)
 	slist.Lock();
 	slist.PushFront(newSpan);	//将新的newSpan插入到slist中

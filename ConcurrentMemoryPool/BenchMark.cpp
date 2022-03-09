@@ -132,13 +132,25 @@ void BenchmarkConcurrentMalloc(size_t ntimes, size_t nworks, size_t rounds)
 
 int main()
 {
-	size_t n = 1000;
-	cout << "==========================================================" << endl;
-	BenchmarkConcurrentMalloc(n, 4, 100);
-	cout << endl << endl;
+	//size_t n = 1000;
+	//cout << "==========================================================" << endl;
+	//BenchmarkConcurrentMalloc(n, 4, 100);
+	//cout << endl << endl;
 
-	BenchmarkMalloc(n, 4, 100);
-	cout << "==========================================================" << endl;
+	//BenchmarkMalloc(n, 4, 100);
+	//cout << "==========================================================" << endl;
+
+	std::vector<void*> v1;
+	for (int i = 0; i < 7; ++i)
+	{
+		void* ptr = ConcurrentAllocate(i+1);
+		v1.push_back(ptr);
+	}
+
+	for (int i = 0; i < 7; ++i)
+	{
+		ConcurrentFree(v1[i]);
+	}
 
 	return 0;
 }
