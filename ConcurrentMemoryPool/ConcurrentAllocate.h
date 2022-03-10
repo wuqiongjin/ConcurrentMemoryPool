@@ -4,6 +4,8 @@
 #include "ObjectPool.h"
 #include "PageMap.h"
 
+static ObjectPool<ThreadCache> tcPool;
+
 //为什么需要创建下面2个函数?/为什么还要封装一层?
 //因为每个线程都有自己的TLS，我们不可能让用户自己去调用TLS然后才能调到Allocate，而是应该直接给他们提供接口。让他们使用接口就行了
 
@@ -25,7 +27,7 @@
 		if (pTLSThreadCache == nullptr)
 		{
 			//pTLSThreadCache = new ThreadCache;
-			static ObjectPool<ThreadCache> tcPool;
+			//static ObjectPool<ThreadCache> tcPool;
  			pTLSThreadCache = tcPool.New();
 		}
 		return pTLSThreadCache->Allocate(size);

@@ -86,7 +86,23 @@ void ThreadCache::ListTooLong(FreeList& freelist, size_t size)
 	void* start = nullptr;
 	void* end = nullptr;
 	
-	freelist.PopRange(start, end, freelist.MaxSize());	//让freelist Pop出一段区间(这里的第三个参数没什么意义, 可以考虑删除)
-
+	//freelist.PopRange(start, end, freelist.MaxSize());	//让freelist Pop出一段区间(这里的第三个参数没什么意义, 可以考虑删除)
+	freelist.PopRange(start, end, freelist.Size());	//传过去的得是Size(), 因为调用ListTooLong的情况不一定只有MaxSize>=Size。
+													//线程结束时也要调，所以此时要传当前freelist的长度。并且其实这里不传Size()这个参数也可以。。。。
 	CentralCache::GetInstance()->ReleaseListToSpans(start, size);
+}
+
+
+//线程结束之前，必须调用tcPool.Delete(pTLSThreadCache)去释放ThreadCache的资源
+//(因为ThreadCache当中可能留有一些小块内存，要将这些内存返回给CentralCache, 如果不这么做，线程结束就自动把ThreadCacche的资源还给系统了)
+ThreadCache::~ThreadCache()
+{
+	for (int i = 0; i < NFREELISTS; ++i)
+	{
+		if (!_freelists[i].Empty())
+		{
+			//cout << "Clear:freelists[" << i << "]!" << endl;
+			ListTooLong(_freelists[i], SizeClass::Bytes(i));
+		}
+	}
 }

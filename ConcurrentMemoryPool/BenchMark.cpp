@@ -97,6 +97,10 @@ void BenchmarkConcurrentMalloc(size_t ntimes, size_t nworks, size_t rounds)
 				malloc_costtime += (end1 - begin1);
 				free_costtime += (end2 - begin2);
 			}
+
+			//线程结束之前, Delete并调用ThreadCache的析构函数，释放ThreadCache中的小块对象返回给CentralCache
+			if (pTLSThreadCache)
+				tcPool.Delete(pTLSThreadCache);
 		});
 	}
 
@@ -130,27 +134,56 @@ void BenchmarkConcurrentMalloc(size_t ntimes, size_t nworks, size_t rounds)
 	cout << nworks << "个线程并发执行concurrent alloc&dealloc " << nworks * rounds*ntimes << "次, 总计花费:：" << malloc_costtime + free_costtime << "ms" << endl;
 }
 
-int main()
+void Routine1()
 {
-	//size_t n = 1000;
-	//cout << "==========================================================" << endl;
-	//BenchmarkConcurrentMalloc(n, 4, 100);
-	//cout << endl << endl;
-
-	//BenchmarkMalloc(n, 4, 100);
-	//cout << "==========================================================" << endl;
-
 	std::vector<void*> v1;
-	for (int i = 0; i < 7; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
-		void* ptr = ConcurrentAllocate(i+1);
+		void* ptr = ConcurrentAllocate(i + 1);
 		v1.push_back(ptr);
 	}
 
-	for (int i = 0; i < 7; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		ConcurrentFree(v1[i]);
 	}
 
+	if (pTLSThreadCache)
+		tcPool.Delete(pTLSThreadCache);
+}
+
+void Routine2()
+{
+	std::vector<void*> v1;
+	for (int i = 0; i < 4; ++i)
+	{
+		void* ptr = ConcurrentAllocate(i + 1);
+		v1.push_back(ptr);
+	}
+
+	for (int i = 0; i < 4; ++i)
+	{
+		ConcurrentFree(v1[i]);
+	}
+
+	if (pTLSThreadCache)
+		tcPool.Delete(pTLSThreadCache);
+}
+
+int main()
+{
+	size_t n = 1000;
+	cout << "==========================================================" << endl;
+	BenchmarkConcurrentMalloc(n, 4, 100);
+	cout << endl << endl;
+
+	BenchmarkMalloc(n, 4, 100);
+	cout << "==========================================================" << endl;
+	
+	//std::thread t1(Routine1);
+	//std::thread t2(Routine2);
+
+	//t1.join();
+	//t2.join();
 	return 0;
 }

@@ -125,7 +125,8 @@ public:
 	void PopRange(void*& start, void*& end, size_t n)
 	{
 		//assert(size > 0 && size <= this->Size());
-		assert(_maxsize <= _size);
+		//assert(_maxsize <= _size);
+
 		start = _head;
 		end = _head;
 
@@ -266,7 +267,7 @@ public:
 		assert(bytes <= MAX_BYTES);
 
 		//static int group_freelist[4] = { 16, 56, 56, 56 };
-		static int group_freelist[4] = { 16, 72, 128, 184};	//用于扣除前面不属于当前对齐数的自由链表的个数
+		static int group_freelist[4] = { 16, 72, 128, 184 };	//用于扣除前面不属于当前对齐数的自由链表的个数
 		if (bytes <= 128)
 			return _Index(bytes, 3);	//3是2^3, 这里传的是 使用位运算要达到对齐数需要左移的位数
 		else if (bytes <= 1024)
@@ -280,6 +281,26 @@ public:
 		else
 			assert(false);
 		return -1;
+	}
+
+	//static inline size_t _Bytes()
+
+	//根据传入的桶的下标，计算出该桶所管理的自由链表中的对象大小
+	static inline size_t Bytes(size_t index)
+	{
+		static size_t group[4] = { 16, 56, 56, 56 };
+		static size_t total_group[4] = { 16, 72, 128, 184 };
+
+		if (index < total_group[0])
+			return (index + 1) * 8;
+		else if (index < total_group[1])
+			return group[0] * 8 + (index + 1 - group[0]) * 16;
+		else if (index < total_group[2])
+			return group[0] * 8 + group[1] * 16 + (index + 1 - total_group[1]) * 128;
+		else if(index < total_group[3])
+			return group[0] * 8 + group[1] * 16 + group[2] * 128 + (index + 1- total_group[2]) * 1024;
+		else
+			return group[0] * 8 + group[1] * 16 + group[2] * 128 + group[3] * 1024 + (index + 1 - total_group[3]) * 8 * 1024;
 	}
 
 	// 一次ThreadCache应该向CentralCache申请的对象的个数(根据对象的大小计算)

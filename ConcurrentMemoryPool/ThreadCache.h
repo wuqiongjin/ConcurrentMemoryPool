@@ -12,7 +12,7 @@ public:
 
 	//从CentralCache获取alignNum对象大小的小块内存
 	void* FetchFromCentralCache(size_t Index, size_t alignNum);
-
+	~ThreadCache();
 private:
 	FreeList _freelists[NFREELISTS];
 };
