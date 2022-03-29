@@ -18,4 +18,8 @@ private:
 };
 
 // TLS thread local storage
+#ifdef _WIN32
 static _declspec(thread) ThreadCache* pTLSThreadCache = nullptr;//必须加上static，不然会在多个.cpp里面重定义
+#else //linux
+static __thread ThreadCache* pTLSThreadCache = nullptr;
+#endif

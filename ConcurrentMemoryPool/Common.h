@@ -2,12 +2,17 @@
 #include <iostream>
 #include <vector>
 #include <unordered_map>
+#include <cstring>
 #include <algorithm>
 #include <thread>
 #include <mutex>
 
 #include <time.h>
 #include <assert.h>
+#include <errno.h>
+
+#include <typeinfo>
+#include <cxxabi.h>
 
 using std::cout;
 using std::endl;
@@ -18,19 +23,23 @@ static const size_t NPAGES = 129;		//设PageCache中的页数范围从1~128. 0下标处不挂
 static const size_t PAGE_SHIFT = 13;	//一页的大小设置为2^13 = 8KB
 
 
-#ifdef _WIN64	//64位下_WIN64和_WIN32都有，32位下只有_WIN32
+#if defined (_WIN64) //64位下_WIN64和_WIN32都有，32位下只有_WIN32
 	typedef unsigned long long PAGE_ID;
-#elif _WIN32
+#elif defined (_WIN32)
 	typedef size_t PAGE_ID;
-#else
+#elif defined(__x86_64)
 	//linux
+	typedef unsigned long long PAGE_ID;
+#elif defined (__i386__)
+	typedef size_t PAGE_ID;
 #endif
 
 
 #ifdef _WIN32
 	#include <Windows.h>
-#elif
+#else
 	//Linux brk,mmp等
+  #include <sys/mman.h>
 #endif
 
 
@@ -42,18 +51,28 @@ inline static void* SystemAlloc(size_t page)
 		PAGE_READWRITE);
 #else
 	// linux下brk mmap等
+  errno; 
+  //cout << page << ":" << (page << PAGE_SHIFT ) << endl;
+  void* ptr = mmap(NULL, (page << PAGE_SHIFT), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
+  if(ptr == MAP_FAILED)
+  {
+    cout << "MAP_FAILED!" << endl;
+    cout << "errno:" << strerror(errno) << endl;
+    throw std::bad_alloc();
+  }
 #endif
 	if (ptr == nullptr)
 		throw std::bad_alloc();
 	return ptr;
 }
 
-inline static void SystemFree(void* ptr)
+inline static void SystemFree(void* ptr, size_t objectsize)
 {
 #ifdef _WIN32
 	VirtualFree(ptr, 0, MEM_RELEASE);
 #else
 	// sbrk unmmap等
+  munmap(ptr, objectsize);
 #endif
 }
 

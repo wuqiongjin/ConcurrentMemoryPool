@@ -127,7 +127,7 @@ void PageCache::ReleaseSpanToPageCache(Span* span)
 	if (span->_n > NPAGES - 1)
 	{
 		void* ptr = (void*)(span->_pageID << PAGE_SHIFT);
-		SystemFree(ptr);	//VirtualFree
+		SystemFree(ptr, span->_ObjectSize);	//VirtualFree
 		return;
 	}
 

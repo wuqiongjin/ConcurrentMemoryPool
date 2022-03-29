@@ -3,13 +3,30 @@
 #include "ObjectPool.h"
 #include "PageMap.h"
 
+
 //单例模式PageCache
 class PageCache
 {
 public:
 	static PageCache* GetInstance()
 	{
-		return &_sInst;
+    return &_sInst;
+    //static std::mutex mtx;
+    //if(_sInst == nullptr)
+    //{
+    //  mtx.lock();
+    //  if(_sInst == nullptr)
+    //  {
+    //    cout << "new a PageCache()" << endl;
+    //    _sInst = new PageCache;
+    //    if(_sInst == nullptr)
+    //      cout << "new PageCache() failed!" << endl;
+    //    if(_sInst != nullptr)
+    //      cout << "new PageCache() Success!" << endl;
+    //  }
+    //  mtx.unlock();
+    //}
+    //return _sInst;
 	}
 
 	//向堆申请一个"页数"大小为"NPAGES - 1"的新的Span
@@ -24,7 +41,7 @@ public:
 	void PageLock() { _pageMutex.lock(); }
 	void PageUnLock() { _pageMutex.unlock(); }
 private:
-	PageCache(){}
+	PageCache() {}
 	PageCache(const PageCache&) = delete;
 	PageCache& operator=(const PageCache&) = delete;
 
@@ -34,6 +51,7 @@ private:
 private:
 	SpanList _spanlists[NPAGES];	//以页数为映射的规则(直接定址法)
 	//std::unordered_map<PAGE_ID, Span*> _idSpanMap;
-	TCMalloc_PageMap1<BITSNUM> _idSpanMap;
+	//TCMalloc_PageMap1<BITSNUM> _idSpanMap;
+	TCMalloc_PageMap3<BITSNUM> _idSpanMap;
 	ObjectPool<Span> _spanPool;
 };

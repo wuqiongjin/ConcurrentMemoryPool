@@ -1,5 +1,6 @@
 #pragma once
 #include"Common.h"
+#include "ObjectPool.h"
 
 //#ifdef后面无法使用逻辑运算符, 这里只能用#if defined
 #if defined _WIN64 || __x86_64
@@ -88,7 +89,7 @@ public:
 	void set(Number k, void* v) {
 		const Number i1 = k >> LEAF_BITS;
 		const Number i2 = k & (LEAF_LENGTH - 1);
-		ASSERT(i1 < ROOT_LENGTH);
+		assert(i1 < ROOT_LENGTH);
 		root_[i1]->values[i2] = v;
 	}
 
@@ -164,6 +165,13 @@ public:
 		root_ = NewNode();
 	}
 
+  TCMalloc_PageMap3()
+  {
+    memset(&root_, 0, sizeof(root_));
+    root_ = new Node;
+    PreallocateMoreMemory();
+  }
+
 	void* get(Number k) const {
 		const Number i1 = k >> (LEAF_BITS + INTERIOR_BITS);
 		const Number i2 = (k >> LEAF_BITS) & (INTERIOR_LENGTH - 1);
@@ -176,15 +184,17 @@ public:
 	}
 
 	void set(Number k, void* v) {
-		ASSERT(k >> BITS == 0);
+		assert(k >> BITS == 0);
 		const Number i1 = k >> (LEAF_BITS + INTERIOR_BITS);
 		const Number i2 = (k >> LEAF_BITS) & (INTERIOR_LENGTH - 1);
 		const Number i3 = k & (LEAF_LENGTH - 1);
+    if(root_->ptrs[i1] == nullptr)
+      Ensure(k, 2);
 		reinterpret_cast<Leaf*>(root_->ptrs[i1]->ptrs[i2])->values[i3] = v;
 	}
 
-	bool Ensure(Number start, size_t n) {
-		for (Number key = start; key <= start + n - 1;) {
+	bool Ensure(Number start, size_t size) {
+		for (Number key = start; key <= start + size - 1;) {
 			const Number i1 = key >> (LEAF_BITS + INTERIOR_BITS);
 			const Number i2 = (key >> LEAF_BITS) & (INTERIOR_LENGTH - 1);
 
@@ -194,14 +204,21 @@ public:
 
 			// Make 2nd level node if necessary
 			if (root_->ptrs[i1] == NULL) {
-				Node* n = NewNode();
+				//Node* n = NewNode();
+        static ObjectPool<Node> nodePool;
+        Node* n = (Node*)nodePool.New();
 				if (n == NULL) return false;
+
+        memset(n, 0, sizeof(*n)); //自己加的(仿照NewNode函数功能)
 				root_->ptrs[i1] = n;
 			}
 
 			// Make leaf node if necessary
 			if (root_->ptrs[i1]->ptrs[i2] == NULL) {
-				Leaf* leaf = reinterpret_cast<Leaf*>((*allocator_)(sizeof(Leaf)));
+				//Leaf* leaf = reinterpret_cast<Leaf*>((*allocator_)(sizeof(Leaf)));
+        static ObjectPool<Leaf> leafPool;
+        Leaf* leaf = (Leaf*)leafPool.New();
+
 				if (leaf == NULL) return false;
 				memset(leaf, 0, sizeof(*leaf));
 				root_->ptrs[i1]->ptrs[i2] = reinterpret_cast<Node*>(leaf);
@@ -214,5 +231,6 @@ public:
 	}
 
 	void PreallocateMoreMemory() {
+    //Ensure(0, 1 << BITS);
 	}
 };

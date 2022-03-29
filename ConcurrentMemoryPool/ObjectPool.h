@@ -38,6 +38,8 @@ public:
 			if (_remainBytes < sizeof(T))
 			{
 				_remainBytes = 128 * 1024;	//如果_remainBytes<sizeof(T)并且不为0时，扔掉这部分空间，重新申请
+        //int status;
+        //cout << abi::__cxa_demangle(typeid(T).name(), 0, 0, &status) << endl;
 				_memory = (char*)SystemAlloc(_remainBytes >> PAGE_SHIFT);
 				if (_memory == nullptr)
 				{

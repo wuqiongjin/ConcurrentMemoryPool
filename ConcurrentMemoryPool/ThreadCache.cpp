@@ -10,7 +10,11 @@ void* ThreadCache::FetchFromCentralCache(size_t index, size_t size)//sizeÊÇË÷Òªµ
 	//2. µ±Äã²»¶ÏµÄÒªÕâ¸ösize´óĞ¡µÄÄÚ´æÊ±£¬batchNum¾Í»á²»¶ÏÔö³¤£¬Ö±µ½ÉÏÏŞ
 	//3. sizeÔ½´óÊ±, Ò»´ÎÏòCentralCacheÒªµÄbatchNum¾Í»áÔ½Ğ¡
 	//4. sizeÔ½Ğ¡Ê±£¬Ò»´ÎÏòCentralCacheÒªµÄbatchNum¾Í»áÔ½´ó
+#ifdef _WIN32
 	size_t batchNum = min(_freelists[index].MaxSize(), SizeClass::SizeToMaxBatchNum(size));
+#else
+	size_t batchNum = std::min(_freelists[index].MaxSize(), SizeClass::SizeToMaxBatchNum(size));
+#endif
 	if (_freelists[index].MaxSize() == batchNum)
 	{
 		_freelists[index].MaxSize() += 1;

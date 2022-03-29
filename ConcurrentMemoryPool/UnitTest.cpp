@@ -119,16 +119,16 @@ void TestBigAlloc()
 }
 
 //
-//int main()
-//{
-//	//TestObjectPool();
-//	//testTLS();
-//	//testConcurrentAlloc();
-//
-//	
-//	TestMultiThread();
-//	//TestBigAlloc();
-//
-//
-//	return 0;
-//}
+int main()
+{
+	//TestObjectPool();
+	testTLS();
+	//testConcurrentAlloc();
+
+	
+	//TestMultiThread();
+	//TestBigAlloc();
+
+
+	return 0;
+}
